@@ -1,15 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Literal
+from typing import Literal, Optional
 
 
 class GameObject(ABC):
     '''Abstract Class of Any Objects'''
     @abstractmethod
-    def __init__(self, *args, **kwargs):...
-    
-    @abstractmethod
-    def update(self, dt:float):...
+    def __init__(self, *args, **kwargs): ...
 
     @abstractmethod
-    def draw(self, camera_pos:tuple[int, int]):...
+    def update(self, dt: float): ...
 
+    @abstractmethod
+    def draw(self, camera_pos: tuple[int, int]): ...
