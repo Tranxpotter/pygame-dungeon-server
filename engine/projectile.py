@@ -42,8 +42,8 @@ class Projectile(GameObject):
     def __init__(self,
                  name: str,
                  description: str,
-                 x:int, 
-                 y:int, 
+                 x: int,
+                 y: int,
                  speed: int | float,
                  angle: float,
                  collider: Optional[Collider],
@@ -51,14 +51,13 @@ class Projectile(GameObject):
                  source: GameObject,
                  pierce: Optional[int] = None,
                  range: Optional[int] = None,
-                 timer: Optional[int | float] = None):
+                 timer: Optional[int | float] = None, 
+                 alive: bool = True):
+        super().__init__(x, y, collider, alive)
         self.name = name
         self.description = description
-        self.x = x
-        self.y = y
         self.speed = speed
         self.angle = angle
-        self.collider = collider
         self.damage = damage
         self.source = source
         self.pierce = pierce
@@ -76,19 +75,19 @@ class Projectile(GameObject):
     def update(self, dt: float):
         '''Called every game loop to update the position and state of the projectile, \n
         when inheriting, call super().update() to do the usual range and timer checking, and also it calls move() automatically'''
-        #Check expire
+        # Check expire
         if self.range and self.range <= 0:
             self.on_expire()
             return
         if self.timer and self.timer <= 0:
             self.on_expire()
             return
-        
+
         self.move(dt)
-    
-    def move(self, dt:float):
+
+    def move(self, dt: float):
         '''Moves the projectile according to its speed and the given delta time'''
-        #Projectile movement
+        # Projectile movement
         move_distance = self.speed * dt
         if self.range:
             self.range -= move_distance
@@ -98,11 +97,12 @@ class Projectile(GameObject):
             self.timer -= dt
             if self.timer < 0:
                 move_distance = self.speed * (dt + self.timer)
-        
+
         self.x += round(self.dx * dt)
         self.y += round(self.dy * dt)
-    
+
     def on_expire(self): ...
+
 
 class AcceleratingProjectile(Projectile):
     '''
@@ -114,14 +114,44 @@ class AcceleratingProjectile(Projectile):
             The amount the speed will increase or decrease in 1 second
         See `Projectile` for the other attributes
     '''
-    def __init__(self, name: str, description: str, x: int, y: int, speed: int | float, acceleration:int|float, angle: float, collider: Collider | None, damage: int, source: GameObject, pierce: int | None = None, range: int | None = None, timer: int | float | None = None):
-        super().__init__(name, description, x, y, speed, angle, collider, damage, source, pierce, range, timer)
+
+    def __init__(
+            self,
+            name: str,
+            description: str,
+            x: int,
+            y: int,
+            speed: int | float,
+            acceleration: int | float,
+            angle: float,
+            collider: Collider | None,
+            damage: int,
+            source: GameObject,
+            pierce: int | None = None,
+            range: int | None = None,
+            timer: int | float | None = None, 
+            alive:bool = True):
+        super().__init__(
+            name,
+            description,
+            x,
+            y,
+            speed,
+            angle,
+            collider,
+            damage,
+            source,
+            pierce,
+            range,
+            timer,
+            alive)
         self.acceleration = acceleration
-    
+
     def move(self, dt: float):
         self.speed += self.acceleration * 0.5 * dt
         super().move(dt)
         self.speed += self.acceleration * 0.5 * dt
+
 
 class HomingPorjectile(Projectile):
     '''
@@ -134,27 +164,61 @@ class HomingPorjectile(Projectile):
         accuracy `float`:
             From 0 to 1, 0 doesn't home in at all while 1 is a a definite hit
     '''
-    def __init__(self, name: str, description: str, x: int, y: int, speed: int | float, angle: float, target: Optional[GameObject], accuracy:float, collider: Collider | None, damage: int, source: GameObject, pierce: int | None = None, range: int | None = None, timer: int | float | None = None):
-        super().__init__(name, description, x, y, speed, angle, collider, damage, source, pierce, range, timer)
+
+    def __init__(
+            self,
+            name: str,
+            description: str,
+            x: int,
+            y: int,
+            speed: int | float,
+            angle: float,
+            target: Optional[GameObject],
+            accuracy: float,
+            collider: Collider | None,
+            damage: int,
+            source: GameObject,
+            pierce: int | None = None,
+            range: int | None = None,
+            timer: int | float | None = None, 
+            alive: bool = True):
+        super().__init__(
+            name,
+            description,
+            x,
+            y,
+            speed,
+            angle,
+            collider,
+            damage,
+            source,
+            pierce,
+            range,
+            timer,
+            alive)
         self.target = target
         self.accuracy = accuracy
-    
+
     def update(self, dt: float):
         if self.target:
             if self.collider:
                 self_mask = self.collider.mask
-                frm = (self_mask.get_centerx(self.x), self_mask.get_centery(self.y))
+                frm = (
+                    self_mask.get_centerx(
+                        self.x), self_mask.get_centery(
+                        self.y))
             else:
                 frm = (self.x, self.y)
-                
-            
+
             if self.target.collider:
                 target_mask = self.target.collider.mask
-                target = (target_mask.get_centerx(self.target.x), target_mask.get_centery(self.target.y))
+                target = (
+                    target_mask.get_centerx(
+                        self.target.x), target_mask.get_centery(
+                        self.target.y))
             else:
                 target = (self.target.x, self.target.y)
 
-            
             new_angle = get_angle(frm, target)
             angle_change = new_angle - self.angle
             if self.collider:
@@ -162,4 +226,3 @@ class HomingPorjectile(Projectile):
             self.angle = new_angle
 
         return super().update(dt)
-

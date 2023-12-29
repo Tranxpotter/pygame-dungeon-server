@@ -1,14 +1,15 @@
-from engine.gameObject import GameObject
-from engine.collider import Collider
-
-class testObject(GameObject):
-    def __init__(self, x: int, y: int, *args, collider: Collider | None = None, **kwargs):
-        super().__init__(x, y, *args, collider=collider, **kwargs)
+class test:
+    def __repr__(self) -> str:
+        return "pass"
     
-    def update(self, dt: float):
-        return super().update(dt)
-    
-    def draw(self, camera_pos: tuple[int, int]):
-        return super().draw(camera_pos)
+    def s(self):
+        print("helo")
 
-a = testObject(10, 10)
+x = []
+a = test()
+x.append(a)
+del a
+
+print(x)
+print(x[0])
+x[0].s()
