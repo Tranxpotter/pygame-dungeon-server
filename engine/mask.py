@@ -79,3 +79,9 @@ class Mask:
             x_coordinates), max(y_coordinates)
         self.center = self.center_x, self.center_y = sum(
             x_coordinates) / len(list(x_coordinates)), sum(y_coordinates) / len(list(y_coordinates))
+
+    def get_centerx(self, obj_x:int) -> int:
+        return round(obj_x + self.center_x)
+
+    def get_centery(self, obj_y:int) -> int:
+        return round(obj_y + self.center_y)

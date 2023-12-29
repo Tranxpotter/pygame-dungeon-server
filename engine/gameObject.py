@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Literal, Optional
-
 
 class GameObject(ABC):
     '''Abstract Class of Any Objects'''
     @abstractmethod
-    def __init__(self, *args, **kwargs): ...
+    def __init__(self, x:int, y:int, *args, collider, **kwargs):
+        self.x = x
+        self.y = y
+        self.collider = collider
 
     @abstractmethod
     def update(self, dt: float): ...
