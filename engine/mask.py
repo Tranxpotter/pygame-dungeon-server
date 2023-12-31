@@ -16,34 +16,41 @@ class Mask:
             radius of the circle, if provided, the object is classified as a circle
         corners `list`[`tuple`(`int`, `int`)]:
             The corners of the polygon provided as a list of relative coordinates, None if the object is a circle
+        
+        Attributes
+        ----------
+        size: (width, height)
+            The size of the mask
+        center: (center_x, center_y)
+            The coordinates of the center of the mask
     '''
 
     def __init__(self,
-                 width: Optional[int],
-                 height: Optional[int],
-                 radius: Optional[int],
-                 corners: Optional[list[tuple[int, int]]]
+                 width: Optional[int] = None,
+                 height: Optional[int] = None,
+                 radius: Optional[int] = None,
+                 corners: Optional[list[tuple[int, int]]] = None
                  ) -> None:
         if corners and radius:
             raise ValueError("Only radius or corners should be provided")
-        elif not width or not height and not radius and not corners:
+        elif (not width or not height) and not radius and not corners:
             raise ValueError(
                 "width and height must be provided if neither radius nor corners are provided")
-
+        self.radius = radius
+        self.corners = corners
         if corners:
-            self.corners = corners
-            x_coordinates = map(lambda x: x[0], corners)
-            y_coordinates = map(lambda x: x[1], corners)
+            x_coordinates = list(map(lambda x: x[0], corners))
+            y_coordinates = list(map(lambda x: x[1], corners))
             self.size = self.width, self.height = max(
                 x_coordinates), max(y_coordinates)
             self.center = self.center_x, self.center_y = sum(
-                x_coordinates) / len(list(x_coordinates)), sum(y_coordinates) / len(list(y_coordinates))
+                x_coordinates) / len(x_coordinates), sum(y_coordinates) / len(y_coordinates)
         elif radius:
             self.center = self.center_x, self.center_y = radius, radius
             self.size = self.width, self.height = radius * 2, radius * 2
-            self.radius = radius
         else:
             self.size = self.width, self.height = width, height
+            self.center = self.center_x, self.center_y = self.width/2 if self.width else 0, self.height/2 if self.height else 0
             self.corners = [(0, 0), (0, height), (width, height), (width, 0)]
 
     def rotate(self, degrees, pivot: Optional[tuple[int, int]]):
