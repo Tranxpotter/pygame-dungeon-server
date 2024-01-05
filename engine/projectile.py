@@ -1,10 +1,11 @@
 import math
 from typing import Callable, Optional, Literal
+from copy import deepcopy
 
 from engine.mask import Mask
 
 from .gameObject import GameObject
-from .collider import Collider
+from .collider import Collider, FastCollider
 from .obstacle import Obstacle
 from .utils import get_angle, resolve, point_to_line_distance, get_mid_pt
 
@@ -231,9 +232,16 @@ class HomingPorjectile(Projectile):
         return super().update(dt)
 
 class FastProjectile(Projectile):
-    def __init__(self, name: str, description: str, x: int, y: int, speed: int | float, angle: float, collider: Collider | None, damage: int, source: GameObject, pierce: int | None = None, range: int | None = None, timer: int | float | None = None, alive: bool = True):
+    '''Represents any fast projectiles
+    
+    Extra Attributes
+    ----------------
+    moving_collider: `Collider`|`None`
+        The collider that should be used when the projectile is moving'''
+    def __init__(self, name: str, description: str, x: int, y: int, speed: int | float, angle: float, collider: FastCollider | None, damage: int, source: GameObject, pierce: int | None = None, range: int | None = None, timer: int | float | None = None, alive: bool = True):
         super().__init__(name, description, x, y, speed, angle, collider, damage, source, pierce, range, timer, alive)
         self.collisions = []
+        self.moving_collider = None
     
     
 
@@ -242,7 +250,7 @@ class FastProjectile(Projectile):
 
 
     def move(self, dt: float):
-        if not self.collider:
+        if not self.collider or not isinstance(self.collider, FastCollider):
             return super().move(dt)
         
         while self.angle >= 2 * math.pi:
@@ -250,81 +258,97 @@ class FastProjectile(Projectile):
         move_distance = self.speed * dt
         move_x = round(move_distance * math.cos(self.angle), 1)
         move_y = round(move_distance * math.sin(self.angle), 1)
+        move_vec = move_x, move_y
+        self.collider.on_move(move_vec)
+
 
         # print(f"{move_x=}, {move_y=}")
-
-        if self.collider.mask.radius:
-            '''Circle stuff'''
-
-        elif self.collider.mask.corners:
-            center = self.collider.mask.center
-            corners = self.collider.mask.corners
-
-            points_distance = [(corner, round(point_to_line_distance(corner, (center, self.angle)), 1)) for corner in corners]
-            distances = list(map(lambda x:x[1], points_distance))
-
-            furthest_points = [
-                [corner for corner, _ in filter(lambda x: x[1] == max(distances), points_distance)], 
-                [corner for corner, _ in filter(lambda x: x[1] == min(distances), points_distance)]
-            ] #[0] are +ve, [1] and -ve
-            # print(f"{furthest_points=}")
-            new_line = (furthest_points[1][0], furthest_points[0][0])
+        # new_polygon_corners = []
+        # if self.collider.mask.radius:
+        #     '''Circle stuff'''
+        #     #Find the 2 furthest points from the center line in the original circle
+        #     center = round(self.collider.mask.center, 1)
+        #     d_angle_1 = self.angle - math.radians(90)
+        #     d_x, d_y = round(self.collider.mask.radius * math.cos(d_angle_1), 1), round(self.collider.mask.radius * math.sin(d_angle_1), 1)
+        #     if self.angle >= 1:
+        #         new_polygon_corners.append((center[0] + d_x, center[1] + d_x))
+        #         new_polygon_corners.append((center[0] - d_x, center[1] - d_y))
+        #     else:
+        #         new_polygon_corners.append((center[0] - d_x, center[1] - d_x))
+        #         new_polygon_corners.append((center[0] + d_x, center[1] + d_y))
             
-            #Line adjustment due to other points having the same distance from center line
-            no_projection_corners = []
-            if len(furthest_points[0]) > 1:
-                keep_corner = furthest_points[0][0]
-                no_projection_corners.append(keep_corner)
-                longest_distance = 0
-                for corner in furthest_points[0][1::]:
-                    distance = point_to_line_distance(corner, new_line)
-                    if distance > longest_distance:
-                        no_projection_corners.append(corner)
-                        try:
-                            no_projection_corners.remove(keep_corner)
-                        except ValueError:
-                            pass
-                        keep_corner = corner
-                        longest_distance = distance
+        #     for corner in reversed(new_polygon_corners.copy()):
+        #         new_polygon_corners.append((corner[0] + move_x, corner[1] + move_y))
+            
+
+
+        # elif self.collider.mask.corners:
+        #     '''Polygon stuff'''
+        #     center = self.collider.mask.center
+        #     corners = self.collider.mask.corners
+
+        #     points_distance = [(corner, round(point_to_line_distance(corner, (center, self.angle)), 1)) for corner in corners]
+        #     distances = list(map(lambda x:x[1], points_distance))
+
+        #     furthest_points = [
+        #         [corner for corner, _ in filter(lambda x: x[1] == max(distances), points_distance)], 
+        #         [corner for corner, _ in filter(lambda x: x[1] == min(distances), points_distance)]
+        #     ] #[0] are +ve, [1] and -ve
+        #     new_line = (furthest_points[1][0], furthest_points[0][0])
+            
+        #     #Line adjustment due to other points having the same distance from center line
+        #     no_projection_corners = []
+        #     if len(furthest_points[0]) > 1:
+        #         keep_corner = furthest_points[0][0]
+        #         no_projection_corners.append(keep_corner)
+        #         longest_distance = 0
+        #         for corner in furthest_points[0][1::]:
+        #             distance = point_to_line_distance(corner, new_line)
+        #             if distance > longest_distance:
+        #                 no_projection_corners.append(corner)
+        #                 try:
+        #                     no_projection_corners.remove(keep_corner)
+        #                 except ValueError:
+        #                     pass
+        #                 keep_corner = corner
+        #                 longest_distance = distance
                 
-                new_line = (new_line[0], keep_corner)
+        #         new_line = (new_line[0], keep_corner)
             
-            if len(furthest_points[1]) > 1:
-                keep_corner = furthest_points[1][0]
-                no_projection_corners.append(keep_corner)
-                longest_distance = 0
-                for corner in furthest_points[1][1::]:
-                    distance = point_to_line_distance(corner, new_line)
-                    if distance > longest_distance:
-                        no_projection_corners.append(corner)
-                        try:
-                            no_projection_corners.remove(keep_corner)
-                        except ValueError:
-                            pass
-                        keep_corner = corner
-                        longest_distance = distance
+        #     if len(furthest_points[1]) > 1:
+        #         keep_corner = furthest_points[1][0]
+        #         no_projection_corners.append(keep_corner)
+        #         longest_distance = 0
+        #         for corner in furthest_points[1][1::]:
+        #             distance = point_to_line_distance(corner, new_line)
+        #             if distance > longest_distance:
+        #                 no_projection_corners.append(corner)
+        #                 try:
+        #                     no_projection_corners.remove(keep_corner)
+        #                 except ValueError:
+        #                     pass
+        #                 keep_corner = corner
+        #                 longest_distance = distance
 
-                new_line = (keep_corner, new_line[1])
-            # print(f"{new_line=}")
-            # print(f"{no_projection_corners=}")
+        #         new_line = (keep_corner, new_line[1])
 
-            new_polygon_corners = []
-            for corner in corners:
-                distance = point_to_line_distance(corner, new_line)
-                if distance > 0 or corner in no_projection_corners:
-                    new_polygon_corners.append(corner)
-                elif distance < 0 and corner:
-                    new_polygon_corners.append((corner[0] + move_x, corner[1] + move_y))
-                else:
-                    if self.angle >= 1:
-                        new_polygon_corners.append((corner[0] + move_x, corner[1] + move_y))
-                        new_polygon_corners.append(corner)
-                    else:
-                        new_polygon_corners.append(corner)
-                        new_polygon_corners.append((corner[0] + move_x, corner[1] + move_y))
-            
-            # print(new_polygon_corners)
-
+        #     for corner in corners:
+        #         distance = point_to_line_distance(corner, new_line)
+        #         if distance > 0 or corner in no_projection_corners:
+        #             new_polygon_corners.append(corner)
+        #         elif distance < 0 and corner:
+        #             new_polygon_corners.append((corner[0] + move_x, corner[1] + move_y))
+        #         else:
+        #             if self.angle >= 1:
+        #                 new_polygon_corners.append((corner[0] + move_x, corner[1] + move_y))
+        #                 new_polygon_corners.append(corner)
+        #             else:
+        #                 new_polygon_corners.append(corner)
+        #                 new_polygon_corners.append((corner[0] + move_x, corner[1] + move_y))
+        
+        # self.moving_collider = deepcopy(self.collider)
+        # self.moving_collider.mask = Mask(corners=new_polygon_corners)
+        
 
 
 

@@ -1,6 +1,23 @@
 import math
 from typing import overload
+def vec_addition(vec1:tuple[int|float, int|float], vec2:tuple[int|float, int|float]):
+    return (vec1[0] + vec2[0], vec1[1] + vec2[1])
 
+def vec_subtraction(vec1:tuple[int|float, int|float], vec2:tuple[int|float, int|float]):
+    return (vec1[0] - vec2[0], vec1[1] - vec2[1])
+
+def vec_orthogonal(vec:tuple[int|float, int|float]):
+    return (vec[1], -vec[0])
+
+def vec_opposite(vec:tuple[int|float, int|float]):
+    return (-vec[0], -vec[1])
+
+def vec_normalize(vec:tuple[int|float, int|float]):
+    """
+    :return: The vector scaled to a length of 1
+    """
+    norm = math.sqrt(vec[0] ** 2 + vec[1] ** 2)
+    return vec[0] / norm, vec[1] / norm
 
 def get_dist(pos1: tuple[int|float, int|float], pos2: tuple[int|float, int|float]) -> float:
     '''Get the distance between 2 points'''
